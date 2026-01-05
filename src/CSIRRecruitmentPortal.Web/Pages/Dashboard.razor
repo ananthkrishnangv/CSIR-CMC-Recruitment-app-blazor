@@ -1,0 +1,118 @@
+@page "/dashboard"
+@using CSIRRecruitmentPortal.Shared.DTOs
+@using CSIRRecruitmentPortal.Shared.Enums
+@using CSIRRecruitmentPortal.Web.Services
+@attribute [Authorize]
+@inject IApplicationService AppService
+@inject NavigationManager Navigation
+
+<PageTitle>Dashboard - CSIR Madras Complex</PageTitle>
+
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-800">Applicant Dashboard</h1>
+            <p class="text-slate-500">Track your applications and view status.</p>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Search" Href="/openings">Explore Openings</MudButton>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="flex justify-center p-12">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+        </div>
+    }
+    else if (!applications.Any())
+    {
+        <div class="bg-white p-12 rounded-lg border border-dashed border-slate-300 text-center">
+            <div class="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <MudIcon Icon="@Icons.Material.Filled.Assignment" Size="Size.Large" />
+            </div>
+            <h3 class="text-xl font-bold text-slate-700 mb-2">No Applications Yet</h3>
+            <p class="text-slate-500 mb-6">You haven't applied for any positions yet. Check the active openings and start your journey.</p>
+            <MudButton Variant="Variant.Outlined" Color="Color.Primary" Href="/openings">View Job Openings</MudButton>
+        </div>
+    }
+    else
+    {
+        <MudTable Items="@applications" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Class="border border-slate-200 rounded-lg overflow-hidden">
+            <HeaderContent>
+                <MudTh>Application No</MudTh>
+                <MudTh>Post</MudTh>
+                <MudTh>Applied On</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Application No"><span class="font-mono font-bold text-slate-700">@context.ApplicationNumber</span></MudTd>
+                <MudTd DataLabel="Post">
+                    <div class="flex flex-col">
+                        <span class="font-bold">@context.PostTitle</span>
+                        <span class="text-xs text-slate-500">@context.PostCode</span>
+                    </div>
+                </MudTd>
+                <MudTd DataLabel="Applied On">@context.SubmissionDate?.ToString("dd MMM yyyy")</MudTd>
+                <MudTd DataLabel="Status">
+                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">@context.Status</MudChip>
+                </MudTd>
+                <MudTd DataLabel="Actions">
+                    @if (context.Status == ApplicationStatus.Draft)
+                    {
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" Size="Size.Small" StartIcon="@Icons.Material.Filled.Edit" Href="@($"/apply/{context.PostId}")">Continue</MudButton>
+                    }
+                    else
+                    {
+                        <MudButton Variant="Variant.Text" Color="Color.Secondary" Size="Size.Small" StartIcon="@Icons.Material.Filled.Visibility" Href="@($"/application/{context.Id}")">View</MudButton>
+                    }
+                </MudTd>
+            </RowTemplate>
+        </MudTable>
+    }
+    
+    <!-- Helpdesk Teaser -->
+    <div class="mt-8 bg-blue-50 border border-blue-100 p-6 rounded-lg flex items-center justify-between">
+        <div class="flex items-center">
+            <MudIcon Icon="@Icons.Material.Filled.SupportAgent" Class="text-blue-600 mr-4" Size="Size.Large" />
+            <div>
+                <h3 class="text-lg font-bold text-blue-900">Need Assistance?</h3>
+                <p class="text-blue-700 text-sm">Facing issues with your application? Raise a support ticket.</p>
+            </div>
+        </div>
+        <MudButton Variant="Variant.Text" Color="Color.Primary" Href="/helpdesk">Contact Support</MudButton>
+    </div>
+</div>
+
+@code {
+    private List<ApplicationListItemDto> applications = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            applications = await AppService.GetMyApplicationsAsync();
+        }
+        catch (Exception ex)
+        {
+            // Log error
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private Color GetStatusColor(ApplicationStatus status)
+    {
+        return status switch
+        {
+            ApplicationStatus.Draft => Color.Default,
+            ApplicationStatus.Submitted => Color.Info,
+            ApplicationStatus.UnderScrutiny => Color.Warning,
+            ApplicationStatus.Shortlisted => Color.Success,
+            ApplicationStatus.Rejected => Color.Error,
+            _ => Color.Surface
+        };
+    }
+}

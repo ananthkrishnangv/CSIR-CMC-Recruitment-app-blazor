@@ -1,0 +1,134 @@
+@page "/register"
+@using CSIRRecruitmentPortal.Shared.DTOs
+@using CSIRRecruitmentPortal.Web.Services
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>New Applicant Registration - CSIR-SERC Recruitment Portal</PageTitle>
+
+<div class="login-container">
+    <!-- Background Image Layer -->
+    <div class="login-bg"></div>
+    
+    <!-- Content Overlay -->
+    <div class="login-content">
+        
+        <!-- Left Side: Stats & Info -->
+        <div class="stats-panel">
+            <div class="branding">
+                 <img src="images/CSIR-Logo.jpg" alt="CSIR Logo" class="logo mb-4" />
+                 <h1 class="text-4xl font-bold text-white mb-2" style="font-family: 'Inter', sans-serif;">CSIR Madras Complex</h1>
+                 <h2 class="text-xl text-blue-100 font-light mb-8">Applicant Registration</h2>
+            </div>
+            
+             <ul class="space-y-4 text-white">
+                <li class="flex items-start">
+                    <MudIcon Icon="@Icons.Material.Filled.Check" Class="mr-3 text-green-400" />
+                    <span>Single sign-on for all job applications</span>
+                </li>
+                <li class="flex items-start">
+                    <MudIcon Icon="@Icons.Material.Filled.Check" Class="mr-3 text-green-400" />
+                    <span>Real-time status tracking via SMS & Email</span>
+                </li>
+                <li class="flex items-start">
+                    <MudIcon Icon="@Icons.Material.Filled.Check" Class="mr-3 text-green-400" />
+                    <span>Secure document vault for your certificates</span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Right Side: Registration Form -->
+        <div class="login-form-container">
+            <div class="login-card glass-panel" style="width: 500px;">
+                <div class="text-center mb-6">
+                    <h2 class="text-2xl font-bold text-slate-800">Create Account</h2>
+                    <p class="text-slate-500 text-sm">Join the portal to start your application</p>
+                </div>
+
+                <EditForm Model="@registerModel" OnValidSubmit="HandleRegister">
+                    <DataAnnotationsValidator />
+                    
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Full Name (as per Aadhaar)</label>
+                        <InputText @bind-Value="registerModel.FullName" class="fluent-input w-full" placeholder="e.g. John Doe" />
+                        <ValidationMessage For="@(() => registerModel.FullName)" class="text-red-500 text-xs mt-1" />
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                             <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Mobile Number</label>
+                             <InputText @bind-Value="registerModel.Mobile" class="fluent-input w-full" placeholder="10 Digits" maxlength="10" />
+                             <ValidationMessage For="@(() => registerModel.Mobile)" class="text-red-500 text-xs mt-1" />
+                        </div>
+                        <div>
+                             <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Aadhaar Number</label>
+                             <InputText @bind-Value="registerModel.Aadhaar" class="fluent-input w-full" placeholder="12 Digits" maxlength="12" />
+                             <ValidationMessage For="@(() => registerModel.Aadhaar)" class="text-red-500 text-xs mt-1" />
+                        </div>
+                    </div>
+
+                    <div class="mb-6">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Email Address</label>
+                        <InputText @bind-Value="registerModel.Email" class="fluent-input w-full" placeholder="you@example.com" />
+                        <ValidationMessage For="@(() => registerModel.Email)" class="text-red-500 text-xs mt-1" />
+                    </div>
+
+                    <div class="mb-6 flex items-start">
+                        <input type="checkbox" id="terms" class="mt-1 mr-2" required />
+                        <label for="terms" class="text-xs text-slate-600">I hereby declare that the details furnished above are true and correct to the best of my knowledge and I agree to the terms and privacy policy.</label>
+                    </div>
+
+                    <button type="submit" class="fluent-button-primary w-full py-3 mb-4 flex justify-center items-center" disabled="@isLoading">
+                        @if (isLoading)
+                        {
+                            <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
+                            <span class="ms-2">Creating Account...</span>
+                        }
+                        else
+                        {
+                            <span>Register & Proceed</span>
+                            <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Size="Size.Small" Class="ml-2" />
+                        }
+                    </button>
+                    
+                    <div class="text-center border-t border-slate-100 pt-4">
+                        <p class="text-sm text-slate-500 mb-2">Already have an account?</p>
+                        <a href="/login" class="text-blue-600 font-bold hover:underline">Login with Aadhaar</a>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private RegisterRequest registerModel = new();
+    private bool isLoading = false;
+
+    private async Task HandleRegister()
+    {
+        isLoading = true;
+        try
+        {
+            var result = await AuthService.RegisterAsync(registerModel);
+            if (result.Success)
+            {
+                Snackbar.Add("Registration successful! Please login.", Severity.Success);
+                Navigation.NavigateTo("/login");
+            }
+            else
+            {
+                Snackbar.Add(result.Message ?? "Registration failed", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("An unexpected error occurred: " + ex.Message, Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

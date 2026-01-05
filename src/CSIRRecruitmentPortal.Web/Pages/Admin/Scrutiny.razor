@@ -1,0 +1,178 @@
+@page "/admin/scrutiny"
+@attribute [Authorize(Roles = "ADMIN,SUPERVISOR,DIRECTOR")]
+@using CSIRRecruitmentPortal.Shared.DTOs
+@using CSIRRecruitmentPortal.Shared.Enums
+@using CSIRRecruitmentPortal.Web.Services
+@inject IPostService PostService
+@inject IApplicationService AppService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Application Scrutiny - Admin</PageTitle>
+
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-2xl font-bold text-slate-800">Application Scrutiny</h1>
+        <p class="text-slate-500">Review and shortlist applications for active posts.</p>
+    </div>
+
+    <div class="bg-white p-4 rounded-lg shadow-sm border border-slate-200 mb-6">
+        <MudGrid>
+            <MudItem xs="12" md="6">
+                <MudSelect T="Guid?" Label="Select Job Post" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" ValueChanged="OnPostSelected">
+                    @foreach (var post in posts)
+                    {
+                        <MudSelectItem Value="@((Guid?)post.Id)">@post.Code - @post.Title</MudSelectItem>
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" md="6" Class="flex items-center">
+                @if (selectedPostId.HasValue && applications.Any())
+                {
+                    <MudChip T="string" Color="Color.Info">Total: @applications.Count</MudChip>
+                    <MudChip T="string" Color="Color.Warning">Pending: @applications.Count(a => a.Status == ApplicationStatus.Submitted)</MudChip>
+                    <MudChip T="string" Color="Color.Success">Shortlisted: @applications.Count(a => a.Status == ApplicationStatus.Shortlisted)</MudChip>
+                }
+            </MudItem>
+        </MudGrid>
+    </div>
+
+    @if (isLoading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-4" />
+    }
+    else if (selectedPostId.HasValue)
+    {
+        <MudTable Items="@applications" Hover="true" Striped="true" Filter="new Func<ApplicationListItemDto,bool>(FilterFunc)">
+            <ToolBarContent>
+                <MudText Typo="Typo.h6">Applications</MudText>
+                <MudSpacer />
+                <MudTextField @bind-Value="searchString" Placeholder="Search Applicant or Number" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh>App No</MudTh>
+                <MudTh>Applicant</MudTh>
+                <MudTh>Submission Date</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="App No" Class="font-mono font-bold">@context.ApplicationNumber</MudTd>
+                <MudTd DataLabel="Applicant">@context.ApplicantName</MudTd>
+                <MudTd DataLabel="Submission Date">@context.SubmissionDate?.ToString("dd MMM yyyy")</MudTd>
+                <MudTd DataLabel="Status">
+                    <MudChip T="string" Size="Size.Small" Color="@GetStatusColor(context.Status)">@context.Status</MudChip>
+                </MudTd>
+                <MudTd DataLabel="Actions">
+                    <MudButton Variant="Variant.Outlined" Color="Color.Primary" Size="Size.Small" OnClick="@(() => ViewApplication(context.Id))">View</MudButton>
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Size="Size.Small">
+                        <MudMenuItem OnClick="@(() => UpdateStatus(context, ApplicationStatus.Shortlisted))">Shortlist</MudMenuItem>
+                        <MudMenuItem OnClick="@(() => UpdateStatus(context, ApplicationStatus.Rejected))">Reject</MudMenuItem>
+                        <MudMenuItem OnClick="@(() => UpdateStatus(context, ApplicationStatus.UnderScrutiny))">Mark Under Scrutiny</MudMenuItem>
+                    </MudMenu>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+        </MudTable>
+    }
+    else
+    {
+        <MudAlert Severity="Severity.Info">Please select a job post to view applications.</MudAlert>
+    }
+</div>
+
+@code {
+    private List<JobPostDto> posts = new();
+    private List<ApplicationListItemDto> applications = new();
+    private Guid? selectedPostId;
+    private bool isLoading = false;
+    private string searchString = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try 
+        {
+            posts = await PostService.GetAllPostsAsync();
+        }
+        catch (Exception) { /* Handle error */ }
+    }
+
+    private async Task OnPostSelected(Guid? value)
+    {
+        selectedPostId = value;
+        if (value.HasValue)
+        {
+            isLoading = true;
+            try
+            {
+                applications = await AppService.GetApplicationsByPostIdAsync(value.Value);
+            }
+            finally
+            {
+                isLoading = false;
+            }
+        }
+        else
+        {
+            applications.Clear();
+        }
+    }
+
+    private bool FilterFunc(ApplicationListItemDto app)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (app.ApplicantName.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if (app.ApplicationNumber?.Contains(searchString, StringComparison.OrdinalIgnoreCase) ?? false) return true;
+        return false;
+    }
+
+    private Color GetStatusColor(ApplicationStatus status)
+    {
+        return status switch
+        {
+            ApplicationStatus.Submitted => Color.Info,
+            ApplicationStatus.Shortlisted => Color.Success,
+            ApplicationStatus.Rejected => Color.Error,
+            ApplicationStatus.UnderScrutiny => Color.Warning,
+            _ => Color.Default
+        };
+    }
+
+    private void ViewApplication(Guid id)
+    {
+        // Navigate to detail view (to be implemented fully) or just show success
+        Snackbar.Add($"Viewing application {id} (Not implemented in demo)", Severity.Info);
+    }
+
+    private async Task UpdateStatus(ApplicationListItemDto app, ApplicationStatus newStatus)
+    {
+        var remarks = "";
+        if (newStatus == ApplicationStatus.Rejected)
+        {
+            // Prompt for remarks
+             // Simple hack for demo: hardcoded remark or use a real dialog with input
+             remarks = "Rejected during scrutiny."; 
+        }
+
+        var confirm = await DialogService.ShowMessageBox(
+            "Confirm Status Change", 
+            $"Change status of {app.ApplicationNumber} to {newStatus}?", 
+            yesText: "Confirm", cancelText: "Cancel");
+
+        if (confirm == true)
+        {
+            var success = await AppService.UpdateApplicationStatusAsync(app.Id, newStatus, remarks);
+            if (success)
+            {
+                Snackbar.Add("Status updated", Severity.Success);
+                app.Status = newStatus; // Optimistic update
+            }
+            else
+            {
+                Snackbar.Add("Failed to update status", Severity.Error);
+            }
+        }
+    }
+}

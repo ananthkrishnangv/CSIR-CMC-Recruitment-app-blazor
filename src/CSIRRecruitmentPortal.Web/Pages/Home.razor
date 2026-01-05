@@ -1,0 +1,120 @@
+@page "/"
+@inject NavigationManager Navigation
+@using CSIRRecruitmentPortal.Shared.DTOs
+
+<PageTitle>Home - CSIR Madras Complex Recruitment</PageTitle>
+
+<!-- Hero Section -->
+<div class="relative bg-slate-900 text-white overflow-hidden" style="height: 500px;">
+    <div class="absolute inset-0 bg-cover bg-center" style="background-image: url('images/zonal-lab-banner.jpg'); filter: brightness(0.4);"></div>
+    
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex flex-col justify-center">
+        <h1 class="text-5xl font-bold mb-4 animate-fade-in-up">CSIR Madras Complex</h1>
+        <h2 class="text-2xl font-light text-blue-200 mb-8 animate-fade-in-up delay-100">Excellence in Structural Engineering</h2>
+        
+        <div class="flex gap-4 animate-fade-in-up delay-200">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Large" Href="/openings" StartIcon="@Icons.Material.Filled.Work" Class="px-8 py-3 rounded-tr-lg rounded-bl-lg font-bold">
+                View Openings
+            </MudButton>
+            <MudButton Variant="Variant.Outlined" Color="Color.Inherit" Size="Size.Large" Href="/login" Class="px-8 py-3 rounded-tl-lg rounded-br-lg font-bold border-2">
+                Applicant Login
+            </MudButton>
+        </div>
+    </div>
+</div>
+
+<!-- News Ticker -->
+<div class="bg-blue-900 text-white py-2 overflow-hidden relative">
+    <div class="container mx-auto flex items-center">
+        <div class="bg-blue-800 px-4 py-1 font-bold z-10 text-sm uppercase tracking-wider">Latest News</div>
+        <div class="flex-1 overflow-hidden relative h-8 ml-4">
+            <div class="ticker-wrap">
+                <div class="ticker">
+                    <div class="ticker__item">Welcome to the official recruitment portal of CSIR Madras Complex.</div>
+                    <div class="ticker__item">Advt. No. SE-1/2024: Applications are invited for Scientist positions.</div>
+                    <div class="ticker__item">Admit cards for Technical Assistant exam are now available for download.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Features Section -->
+<div class="py-16 bg-white">
+    <div class="container mx-auto px-4">
+        <div class="text-center mb-16">
+            <h2 class="text-3xl font-bold text-slate-800 mb-4">Why Join Us?</h2>
+            <div class="w-24 h-1 bg-blue-600 mx-auto rounded"></div>
+            <p class="mt-4 text-slate-600 max-w-2xl mx-auto">Be part of a premier research institution dedicated to structural engineering excellence and national service.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <FeatureCard Icon="@Icons.Material.Filled.Science" Title="Advanced Research" Description="Work with state-of-the-art facilities like the Advanced Seismic Testing and Research Laboratory." />
+            <FeatureCard Icon="@Icons.Material.Filled.Groups" Title="Collaborative Environment" Description="Join a vibrant community of scientists and researchers working on interdisciplinary projects." />
+            <FeatureCard Icon="@Icons.Material.Filled.Public" Title="National Impact" Description="Contribute to projects of national importance in infrastructure, energy, and disaster mitigation." />
+        </div>
+    </div>
+</div>
+
+<!-- Call to Action -->
+<div class="py-16 bg-slate-50 border-t border-slate-200">
+    <div class="container mx-auto px-4 text-center">
+         <h2 class="text-3xl font-bold text-slate-800 mb-6">Ready to Apply?</h2>
+         <p class="text-slate-600 mb-8 max-w-2xl mx-auto">Check the eligibility criteria and current openings. Create an account to start your application journey.</p>
+         <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Large" Href="/register">Register Now</MudButton>
+    </div>
+</div>
+
+<style>
+    .animate-fade-in-up {
+        animation: fadeInUp 0.8s ease-out forwards;
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    
+    .delay-100 { animation-delay: 0.1s; }
+    .delay-200 { animation-delay: 0.2s; }
+
+    @@keyframes fadeInUp {
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Ticker animation */
+    .ticker-wrap {
+        width: 100%;
+        overflow: hidden;
+        height: 2rem;
+        padding-left: 100%; 
+        box-sizing: content-box;
+    }
+
+    .ticker {
+        display: inline-block;
+        height: 2rem;
+        line-height: 2rem;
+        white-space: nowrap;
+        padding-right: 100%;
+        box-sizing: content-box;
+        animation-iteration-count: infinite;
+        animation-timing-function: linear;
+        animation-name: ticker;
+        animation-duration: 30s;
+    }
+
+    .ticker__item {
+        display: inline-block;
+        padding: 0 2rem;
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.9);
+    }
+
+    @@keyframes ticker {
+        0% { transform: translate3d(0, 0, 0); visibility: visible; }
+        100% { transform: translate3d(-100%, 0, 0); }
+    }
+</style>
+
+@code {
+    // Feature Card component defined inline for simplicity, or could be extracted
+}
+

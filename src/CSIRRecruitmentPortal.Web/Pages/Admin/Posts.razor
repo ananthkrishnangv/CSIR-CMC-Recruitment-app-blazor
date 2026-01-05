@@ -1,0 +1,124 @@
+@page "/admin/posts"
+@attribute [Authorize(Roles = "ADMIN,SUPERVISOR,DIRECTOR")]
+@using CSIRRecruitmentPortal.Shared.DTOs
+@using CSIRRecruitmentPortal.Shared.Enums
+@using CSIRRecruitmentPortal.Web.Services
+@inject IPostService PostService
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+<PageTitle>Manage Job Posts - Admin</PageTitle>
+
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold text-slate-800">Job Postings</h1>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="OpenCreateDialog">Create New Post</MudButton>
+    </div>
+
+    @if (isLoading)
+    {
+        <MudProgressCircular Indeterminate="true" />
+    }
+    else
+    {
+        <MudTable Items="@posts" Hover="true" Striped="true" Bordered="true" Filter="new Func<JobPostDto,bool>(FilterFunc)">
+            <ToolBarContent>
+                <MudText Typo="Typo.h6">Active Positions</MudText>
+                <MudSpacer />
+                <MudTextField @bind-Value="searchString" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh>Code</MudTh>
+                <MudTh>Title</MudTh>
+                <MudTh>Department</MudTh>
+                <MudTh>Deadline</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Code">@context.Code</MudTd>
+                <MudTd DataLabel="Title">@context.Title</MudTd>
+                <MudTd DataLabel="Department">@context.Department</MudTd>
+                <MudTd DataLabel="Deadline">@context.LastDate.ToString("dd MMM yyyy")</MudTd>
+                <MudTd DataLabel="Status">
+                    <MudChip T="string" Color="@(context.Status == PostStatus.Published ? Color.Success : Color.Warning)" Size="Size.Small">@context.Status</MudChip>
+                </MudTd>
+                <MudTd DataLabel="Actions">
+                    <MudIconButton Icon="@Icons.Material.Filled.Delete" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeletePost(context))" />
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent>
+        </MudTable>
+    }
+</div>
+
+@code {
+    private List<JobPostDto> posts = new();
+    private bool isLoading = true;
+    private string searchString = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPosts();
+    }
+
+    private async Task LoadPosts()
+    {
+        isLoading = true;
+        try
+        {
+            posts = await PostService.GetAllPostsAsync();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private bool FilterFunc(JobPostDto element)
+    {
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (element.Title.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if (element.Code.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+
+    private async Task OpenCreateDialog()
+    {
+        // Simple placeholder for creating logic
+        // In real app, this opens a comprehensive dialog or navigates to /admin/posts/create
+        Snackbar.Add("Create Page not implemented fully in this demo.", Severity.Info);
+        
+        // Demo: Creating a sample post automatically to show it works
+        var confirm = await DialogService.ShowMessageBox("Create Demo Post?", "This will create a dummy 'Senior Scientist' post.", yesText:"Create", cancelText:"Cancel");
+        if (confirm == true)
+        {
+             var req = new CreatePostRequest 
+             {
+                 Code = $"SCI-{DateTime.Now.Ticks % 1000}",
+                 Title = "Senior Scientist (Demo)",
+                 Department = "Structural Dynamics",
+                 Description = "Demo post created from Admin panel.",
+                 Vacancies = 1,
+                 Type = PostType.Permanent,
+                 LastDate = DateTime.Now.AddDays(30)
+             };
+             await PostService.CreatePostAsync(req);
+             await LoadPosts();
+             Snackbar.Add("Post created", Severity.Success);
+        }
+    }
+
+    private async Task DeletePost(JobPostDto post)
+    {
+        var confirm = await DialogService.ShowMessageBox("Delete Post", $"Are you sure you want to delete {post.Code}?", yesText:"Delete", cancelText:"Cancel");
+        if (confirm == true)
+        {
+            await PostService.DeletePostAsync(post.Id);
+            await LoadPosts();
+            Snackbar.Add("Post deleted", Severity.Success);
+        }
+    }
+}

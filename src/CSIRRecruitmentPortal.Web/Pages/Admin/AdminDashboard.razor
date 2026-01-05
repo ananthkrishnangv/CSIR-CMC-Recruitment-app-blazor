@@ -1,0 +1,131 @@
+@page "/admin/dashboard"
+@attribute [Authorize(Roles = "ADMIN,SUPERVISOR,DIRECTOR")]
+@using CSIRRecruitmentPortal.Shared.DTOs
+@using CSIRRecruitmentPortal.Web.Services
+@inject IApplicationService AppService
+@inject ISnackbar Snackbar
+
+<PageTitle>Admin Dashboard - CSIR Madras Complex</PageTitle>
+
+<div class="container mx-auto px-4 py-8">
+    <div class="mb-8">
+        <h1 class="text-3xl font-bold text-slate-800">Administrator Dashboard</h1>
+        <p class="text-slate-500">Overview of recruitment activities and system status.</p>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="stat-card bg-blue-500 text-white">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="text-3xl font-bold">@stats.ActivePosts</h3>
+                    <p class="text-blue-100">Active Posts</p>
+                </div>
+                <MudIcon Icon="@Icons.Material.Filled.Work" Size="Size.Large" Class="opacity-50" />
+            </div>
+        </div>
+        <div class="stat-card bg-emerald-500 text-white">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="text-3xl font-bold">@stats.TotalApplications</h3>
+                    <p class="text-emerald-100">Total Applications</p>
+                </div>
+                <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Class="opacity-50" />
+            </div>
+        </div>
+        <div class="stat-card bg-amber-500 text-white">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="text-3xl font-bold">@stats.PendingScrutiny</h3>
+                    <p class="text-amber-100">Pending Scrutiny</p>
+                </div>
+                <MudIcon Icon="@Icons.Material.Filled.PendingActions" Size="Size.Large" Class="opacity-50" />
+            </div>
+        </div>
+        <div class="stat-card bg-purple-500 text-white">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="text-3xl font-bold">@stats.OpenTickets</h3>
+                    <p class="text-purple-100">Open Tickets</p>
+                </div>
+                <MudIcon Icon="@Icons.Material.Filled.SupportAgent" Size="Size.Large" Class="opacity-50" />
+            </div>
+        </div>
+    </div>
+
+    <!-- Actions Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Manage Posts -->
+        <MudCard Class="hover:shadow-lg transition-shadow">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Job Postings</MudText>
+                </CardHeaderContent>
+                <CardHeaderActions>
+                    <MudIconButton Icon="@Icons.Material.Filled.Add" Color="Color.Primary" />
+                </CardHeaderActions>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudText Typo="Typo.body2">Create, edit, and publish job advertisements. Configure custom fields for applications.</MudText>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton Variant="Variant.Text" Color="Color.Primary" Href="/admin/posts">Manage Posts</MudButton>
+            </MudCardActions>
+        </MudCard>
+
+        <!-- Applications -->
+        <MudCard Class="hover:shadow-lg transition-shadow">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">Applications</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudText Typo="Typo.body2">View incoming applications, perform scrutiny, and manage candidate status.</MudText>
+            </MudCardContent>
+            <MudCardActions>
+                 <MudButton Variant="Variant.Text" Color="Color.Primary" Href="/admin/applications">View All</MudButton>
+            </MudCardActions>
+        </MudCard>
+
+        <!-- Site Settings -->
+        <MudCard Class="hover:shadow-lg transition-shadow border-l-4 border-l-slate-500">
+            <MudCardHeader>
+                <CardHeaderContent>
+                    <MudText Typo="Typo.h6">System Configuration</MudText>
+                </CardHeaderContent>
+            </MudCardHeader>
+            <MudCardContent>
+                <MudText Typo="Typo.body2">Update portal branding, logos, hero banners, and contact information.</MudText>
+            </MudCardContent>
+            <MudCardActions>
+                 <MudButton Variant="Variant.Filled" Color="Color.Secondary" StartIcon="@Icons.Material.Filled.Settings" Href="/admin/settings">Open Settings</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </div>
+</div>
+
+<style>
+    .stat-card {
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+</style>
+
+@code {
+    private DashboardStatsDto stats = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            stats = await AppService.GetDashboardStatsAsync();
+        }
+        catch (Exception ex)
+        {
+            // Just log locally or suppress, as dashboard should still load
+            Snackbar.Add("Could not load stats", Severity.Warning);
+        }
+    }
+}

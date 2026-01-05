@@ -1,0 +1,188 @@
+@inherits LayoutComponentBase
+@inject NavigationManager Navigation
+@inject IAuthService AuthService
+
+<MudThemeProvider Theme="_currentTheme" />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <!-- GIGW Top Bar -->
+    <div class="gigw-bar">
+        <div class="container mx-auto px-4 flex justify-between items-center text-xs text-slate-200">
+            <div class="flex gap-4">
+                <span>GOVERNMENT OF INDIA</span>
+                <span>MINISTRY OF SCIENCE & TECHNOLOGY</span>
+            </div>
+            <div class="flex gap-4">
+                <a href="#" class="hover:text-white">Skip to Main Content</a>
+                <a href="#" class="hover:text-white">Screen Reader Access</a>
+                <div class="flex gap-2 items-center">
+                    <button class="w-5 h-5 bg-slate-800 text-white rounded border border-slate-600">A-</button>
+                    <button class="w-5 h-5 bg-slate-800 text-white rounded border border-slate-600">A</button>
+                    <button class="w-5 h-5 bg-slate-800 text-white rounded border border-slate-600">A+</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <MudAppBar Elevation="1" Class="app-header bg-white text-slate-800 border-b border-slate-200" Fixed="true">
+        <div class="flex items-center gap-4 flex-grow">
+            <img src="images/CSIR-Logo.jpg" alt="Logo" class="h-12 w-12" />
+            <div class="hidden md:block">
+                <h1 class="text-xl font-bold font-heading text-slate-900 leading-tight">CSIR Madras Complex</h1>
+                <p class="text-xs text-slate-500 font-semibold tracking-wide">Council of Scientific & Industrial Research</p>
+            </div>
+        </div>
+        
+        <div class="hidden md:flex gap-1">
+            <MudButton Variant="Variant.Text" Href="/" StartIcon="@Icons.Material.Filled.Home">Home</MudButton>
+            <MudButton Variant="Variant.Text" Href="/openings" StartIcon="@Icons.Material.Filled.Work">Openings</MudButton>
+            
+            <AuthorizeView>
+                <Authorized>
+                    <MudButton Variant="Variant.Text" Href="/dashboard" StartIcon="@Icons.Material.Filled.Dashboard">Dashboard</MudButton>
+                    <MudButton Variant="Variant.Text" Href="/helpdesk" StartIcon="@Icons.Material.Filled.Help">Helpdesk</MudButton>
+                    
+                    <MudMenu Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Primary" Label="@context.User.Identity?.Name">
+                        <MudMenuItem OnClick="Logout">Logout</MudMenuItem>
+                    </MudMenu>
+                </Authorized>
+                <NotAuthorized>
+                    <MudButton Variant="Variant.Outlined" Href="/login" Color="Color.Primary" Class="ml-2">Login</MudButton>
+                    <MudButton Variant="Variant.Filled" Href="/register" Color="Color.Primary" Class="ml-2">Register</MudButton>
+                </NotAuthorized>
+            </AuthorizeView>
+        </div>
+        
+        <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.End" Class="md:hidden" OnClick="@((e) => DrawerToggle())" />
+    </MudAppBar>
+
+    <MudDrawer @bind-Open="@_drawerOpen" Anchor="Anchor.Right" Elevation="2" Variant="DrawerVariant.Temporary">
+        <MudDrawerHeader>
+            <MudText Typo="Typo.h6">Menu</MudText>
+        </MudDrawerHeader>
+        <MudNavMenu>
+            <MudNavLink Href="/" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Home">Home</MudNavLink>
+            <MudNavLink Href="/openings" Icon="@Icons.Material.Filled.Work">Job Openings</MudNavLink>
+            
+            <AuthorizeView>
+                <Authorized>
+                    <MudNavLink Href="/dashboard" Icon="@Icons.Material.Filled.Dashboard">Dashboard</MudNavLink>
+                    <MudNavLink Href="/helpdesk" Icon="@Icons.Material.Filled.Help">Helpdesk</MudNavLink>
+                    <MudNavLink OnClick="Logout" Icon="@Icons.Material.Filled.Logout">Logout</MudNavLink>
+                </Authorized>
+                <NotAuthorized>
+                    <MudNavLink Href="/login" Icon="@Icons.Material.Filled.Login">Login</MudNavLink>
+                    <MudNavLink Href="/register" Icon="@Icons.Material.Filled.PersonAdd">Register</MudNavLink>
+                </NotAuthorized>
+            </AuthorizeView>
+        </MudNavMenu>
+    </MudDrawer>
+
+    <MudMainContent Class="pt-24 pb-8 min-h-screen bg-slate-50">
+        @Body
+    </MudMainContent>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-white pt-12 pb-6">
+        <div class="container mx-auto px-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                <div class="col-span-1 md:col-span-2">
+                    <h3 class="text-lg font-bold mb-4">CSIR Madras Complex</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed mb-4">
+                        Council of Scientific & Industrial Research - Madras Complex, Chennai. 
+                        Pioneering advanced scientific research and solutions for the nation.
+                    </p>
+                    <div class="flex gap-4">
+                        <MudIconButton Icon="@Icons.Custom.Brands.Facebook" Color="Color.Inherit" Size="Size.Small" />
+                        <MudIconButton Icon="@Icons.Custom.Brands.Twitter" Color="Color.Inherit" Size="Size.Small" />
+                        <MudIconButton Icon="@Icons.Custom.Brands.LinkedIn" Color="Color.Inherit" Size="Size.Small" />
+                        <MudIconButton Icon="@Icons.Custom.Brands.YouTube" Color="Color.Inherit" Size="Size.Small" />
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold mb-4">Quick Links</h3>
+                    <ul class="space-y-2 text-sm text-slate-400">
+                        <li><a href="#" class="hover:text-white transition">About Us</a></li>
+                        <li><a href="#" class="hover:text-white transition">RTI</a></li>
+                        <li><a href="#" class="hover:text-white transition">Tenders</a></li>
+                        <li><a href="#" class="hover:text-white transition">Contact Us</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold mb-4">Contact</h3>
+                    <ul class="space-y-2 text-sm text-slate-400">
+                        <li class="flex items-start"><MudIcon Icon="@Icons.Material.Filled.LocationOn" Size="Size.Small" Class="mr-2 mt-0.5" /> CSIR Road, Taramani, Chennai - 600 113</li>
+                        <li class="flex items-center"><MudIcon Icon="@Icons.Material.Filled.Phone" Size="Size.Small" Class="mr-2" /> +91 44 2254 9000</li>
+                        <li class="flex items-center"><MudIcon Icon="@Icons.Material.Filled.Email" Size="Size.Small" Class="mr-2" /> recruit@serc.res.in</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-slate-800 pt-6 text-center text-xs text-slate-500">
+                <p>&copy; @DateTime.Now.Year CSIR Madras Complex. All Rights Reserved. | Compliance to GIGW 3.0</p>
+            </div>
+        </div>
+    </footer>
+</MudLayout>
+
+<style>
+    .gigw-bar {
+        background-color: #242424;
+        padding: 0.5rem 0;
+        position: fixed;
+        top: 0;
+        width: 100%;
+        z-index: 1200;
+        font-family: 'Noto Sans', sans-serif;
+    }
+    
+    .app-header {
+        top: 2rem !important; /* Push down below GIGW bar */
+    }
+
+    .font-heading {
+        font-family: 'Inter', sans-serif;
+    }
+</style>
+
+@code {
+    bool _drawerOpen = false;
+    
+    MudTheme _currentTheme = new MudTheme()
+    {
+        Palette = new PaletteLight()
+        {
+            Primary = "#0078D4",
+            Secondary = "#2b88d8",
+            AppbarBackground = "#FFFFFF",
+        },
+        Typography = new Typography()
+        {
+            Default = new Default()
+            {
+                FontFamily = new[] { "Noto Sans", "Helvetica", "Arial", "sans-serif" }
+            },
+            H1 = new H1() { FontFamily = new[] { "Inter", "sans-serif" }, FontWeight = 700 },
+            H2 = new H2() { FontFamily = new[] { "Inter", "sans-serif" }, FontWeight = 700 },
+            H3 = new H3() { FontFamily = new[] { "Inter", "sans-serif" }, FontWeight = 600 },
+            H4 = new H4() { FontFamily = new[] { "Inter", "sans-serif" }, FontWeight = 600 },
+            H5 = new H5() { FontFamily = new[] { "Inter", "sans-serif" }, FontWeight = 500 },
+            H6 = new H6() { FontFamily = new[] { "Inter", "sans-serif" }, FontWeight = 500 },
+        }
+    };
+
+    void DrawerToggle()
+    {
+        _drawerOpen = !_drawerOpen;
+    }
+
+    async Task Logout()
+    {
+        if (AuthService is ClientAuthService clientAuth)
+        {
+            await clientAuth.Logout();
+            Navigation.NavigateTo("/login");
+        }
+    }
+}

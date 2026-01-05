@@ -1,0 +1,193 @@
+@page "/admin/settings"
+@attribute [Authorize(Roles = "ADMIN,SUPERVISOR")]
+@using CSIRRecruitmentPortal.Shared.DTOs
+@using CSIRRecruitmentPortal.Web.Services
+@inject IConfigService ConfigService
+@inject ISnackbar Snackbar
+
+<PageTitle>Site Configuration - Admin Dashboard</PageTitle>
+
+<div class="container mx-auto px-4 py-8">
+    <div class="flex justify-between items-center mb-8">
+        <div>
+            <h1 class="text-3xl font-bold text-slate-800">Site Configuration</h1>
+            <p class="text-slate-500">Manage portal branding, contact details, and banner images.</p>
+        </div>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Save" OnClick="SaveConfig" Disabled="@isSaving">
+            @if (isSaving) { <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/> <span class="ml-2">Saving...</span> }
+            else { <span>Save Changes</span> }
+        </MudButton>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="flex justify-center p-12">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+        </div>
+    }
+    else
+    {
+        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="p-6 bg-white rounded-b-lg">
+            <!-- Branding & Header -->
+            <MudTabPanel Text="Branding & Header" Icon="@Icons.Material.Filled.BrandingWatermark">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div class="space-y-4">
+                        <MudTextField @bind-Value="config.Header.MinistryText" Label="Ministry Text" Variant="Variant.Outlined" />
+                        <MudTextField @bind-Value="config.Header.OrganizationName" Label="Organization Name" Variant="Variant.Outlined" />
+                        <MudTextField @bind-Value="config.Header.OrganizationSubtitle" Label="Organization Subtitle" Variant="Variant.Outlined" />
+                        <MudTextField @bind-Value="config.Header.ParentOrganization" Label="Parent Organization" Variant="Variant.Outlined" />
+                    </div>
+                    <div>
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">Organization Logo</MudText>
+                        <div class="flex items-center gap-4 mb-4">
+                            <div class="w-24 h-24 border rounded flex items-center justify-center bg-slate-50 p-2">
+                                @if (!string.IsNullOrEmpty(config.Header.LogoUrl))
+                                {
+                                    <img src="@config.Header.LogoUrl" alt="Logo" class="max-w-full max-h-full" />
+                                }
+                                else
+                                {
+                                    <MudIcon Icon="@Icons.Material.Filled.Image" Size="Size.Large" Color="Color.Default" />
+                                }
+                            </div>
+                            <div>
+                                <InputFile id="logoUpload" OnChange="UploadLogo" hidden accept=".jpg, .jpeg, .png, .svg" />
+                                <MudButton HtmlTag="label" for="logoUpload" Variant="Variant.Outlined" Color="Color.Primary" StartIcon="@Icons.Material.Filled.CloudUpload">
+                                    Upload Logo
+                                </MudButton>
+                                <p class="text-xs text-slate-500 mt-1">Recommended: SVG or Transparent PNG</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </MudTabPanel>
+
+            <!-- Banner & Landing -->
+             <MudTabPanel Text="Banner & Landing" Icon="@Icons.Material.Filled.Image">
+                <div class="space-y-6">
+                    <div>
+                        <MudText Typo="Typo.subtitle2" Class="mb-2">Hero Banner Image (Login & Home Background)</MudText>
+                        <div class="relative w-full h-64 border rounded overflow-hidden bg-slate-900 mb-4 group">
+                             @if (!string.IsNullOrEmpty(config.Landing.HeroImageUrl))
+                            {
+                                <img src="@config.Landing.HeroImageUrl" alt="Hero Banner" class="w-full h-full object-cover opacity-60" />
+                            }
+                            else
+                            {
+                                <div class="flex items-center justify-center h-full text-white">No Banner Set</div>
+                            }
+                            
+                            <div class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <InputFile id="bannerUpload" OnChange="UploadBanner" hidden accept=".jpg, .jpeg, .png" />
+                                <MudButton HtmlTag="label" for="bannerUpload" Variant="Variant.Filled" Color="Color.White" StartIcon="@Icons.Material.Filled.Edit">
+                                    Change Banner
+                                </MudButton>
+                            </div>
+                        </div>
+                        <MudTextField @bind-Value="config.Landing.HeroImageUrl" Label="Banner URL (Manual Input)" Variant="Variant.Outlined" HelperText="Or upload a new image above" />
+                    </div>
+                </div>
+            </MudTabPanel>
+
+            <!-- Footer & Contact -->
+            <MudTabPanel Text="Footer & Contact" Icon="@Icons.Material.Filled.ContactMail">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                     <div class="space-y-4">
+                        <MudTextField @bind-Value="config.Footer.AboutText" Label="About Text (Footer)" Variant="Variant.Outlined" Lines="3" />
+                        <MudTextField @bind-Value="config.Footer.Address" Label="Address" Variant="Variant.Outlined" Lines="3" />
+                        <MudTextField @bind-Value="config.Footer.CopyrightText" Label="Copyright Text" Variant="Variant.Outlined" />
+                        <MudTextField @bind-Value="config.Footer.ContactEmail" Label="Contact Email" Variant="Variant.Outlined" />
+                    </div>
+                    <div class="space-y-4">
+                         <MudText Typo="Typo.h6">Assistance Section</MudText>
+                         <MudTextField @bind-Value="config.Assistance.Title" Label="Assistance Title" Variant="Variant.Outlined" />
+                         <MudTextField @bind-Value="config.Assistance.Description" Label="Assistance Description" Variant="Variant.Outlined" Lines="4" />
+                    </div>
+                </div>
+            </MudTabPanel>
+        </MudTabs>
+    }
+</div>
+
+@code {
+    private SiteConfigDto config = new();
+    private bool isLoading = true;
+    private bool isSaving = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            config = await ConfigService.GetConfigAsync();
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error loading configuration: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task SaveConfig()
+    {
+        isSaving = true;
+        try
+        {
+            var success = await ConfigService.UpdateConfigAsync(config);
+            if (success)
+            {
+                Snackbar.Add("Configuration saved successfully", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Failed to save configuration", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task UploadLogo(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file != null)
+        {
+            var url = await ConfigService.UploadAssetAsync(file);
+            if (!string.IsNullOrEmpty(url))
+            {
+                config.Header.LogoUrl = url;
+                Snackbar.Add("Logo uploaded successfully", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Failed to upload logo", Severity.Error);
+            }
+        }
+    }
+
+    private async Task UploadBanner(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file != null)
+        {
+            var url = await ConfigService.UploadAssetAsync(file);
+            if (!string.IsNullOrEmpty(url))
+            {
+                config.Landing.HeroImageUrl = url;
+                Snackbar.Add("Banner uploaded successfully", Severity.Success);
+            }
+            else
+            {
+                Snackbar.Add("Failed to upload banner", Severity.Error);
+            }
+        }
+    }
+}

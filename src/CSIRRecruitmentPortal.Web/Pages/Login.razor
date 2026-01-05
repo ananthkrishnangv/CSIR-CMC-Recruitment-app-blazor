@@ -1,0 +1,249 @@
+@page "/login"
+@using CSIRRecruitmentPortal.Shared.DTOs
+@using CSIRRecruitmentPortal.Web.Services
+@inject IAuthService AuthService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Login - CSIR-SERC Recruitment Portal</PageTitle>
+
+<div class="login-container">
+    <!-- Background Image Layer -->
+    <div class="login-bg"></div>
+    
+    <!-- Content Overlay -->
+    <div class="login-content">
+        
+        <!-- Left Side: Stats & Info -->
+        <div class="stats-panel">
+            <div class="branding">
+                 <img src="images/CSIR-Logo.jpg" alt="CSIR Logo" class="logo mb-4" />
+                 <h1 class="text-4xl font-bold text-white mb-2" style="font-family: 'Inter', sans-serif;">CSIR Madras Complex</h1>
+                 <h2 class="text-xl text-blue-100 font-light mb-8">Recruitment Portal</h2>
+            </div>
+            
+            <div class="stats-grid">
+                <div class="stat-item glass-card">
+                    <MudIcon Icon="@Icons.Material.Filled.Work" Size="Size.Large" Class="text-white mb-2" />
+                    <h3 class="text-3xl font-bold text-white">12</h3>
+                    <p class="text-blue-100 text-sm">Active Openings</p>
+                </div>
+                <div class="stat-item glass-card">
+                    <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Class="text-white mb-2" />
+                    <h3 class="text-3xl font-bold text-white">1,240</h3>
+                    <p class="text-blue-100 text-sm">Applicants</p>
+                </div>
+                <div class="stat-item glass-card">
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Large" Class="text-white mb-2" />
+                    <h3 class="text-3xl font-bold text-white">45</h3>
+                    <p class="text-blue-100 text-sm">Selections This Year</p>
+                </div>
+            </div>
+
+            <div class="mt-8 text-blue-100 text-sm max-w-lg">
+                <p>Welcome to the official recruitment portal of CSIR-Structural Engineering Research Centre. Please login with your Aadhaar number to apply for positions.</p>
+            </div>
+        </div>
+
+        <!-- Right Side: Login Form -->
+        <div class="login-form-container">
+            <div class="login-card glass-panel">
+                <div class="text-center mb-6">
+                    <h2 class="text-2xl font-bold text-slate-800">Applicant Login</h2>
+                    <p class="text-slate-500 text-sm">Enter your 12-digit Aadhaar Number</p>
+                </div>
+
+                <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+                    <DataAnnotationsValidator />
+                    
+                    <div class="mb-6">
+                        <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Aadhaar Number</label>
+                        <InputText @bind-Value="loginModel.Aadhaar" class="fluent-input w-full" placeholder="XXXX XXXX XXXX" maxlength="12" />
+                        <ValidationMessage For="@(() => loginModel.Aadhaar)" class="text-red-500 text-xs mt-1" />
+                    </div>
+
+                    <button type="submit" class="fluent-button-primary w-full py-3 mb-4 flex justify-center items-center" disabled="@isLoading">
+                        @if (isLoading)
+                        {
+                            <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
+                            <span class="ms-2">Verifying...</span>
+                        }
+                        else
+                        {
+                            <span>Secure Login</span>
+                            <MudIcon Icon="@Icons.Material.Filled.ArrowForward" Size="Size.Small" Class="ml-2" />
+                        }
+                    </button>
+                    
+                    <div class="text-center">
+                        <p class="text-sm text-slate-500 mb-2">New Applicant?</p>
+                        <a href="/register" class="text-blue-600 font-bold hover:underline">Create an Account</a>
+                    </div>
+                    
+                    <div class="mt-6 pt-6 border-t border-slate-200">
+                         <a href="/admin/login" class="text-xs text-slate-400 hover:text-slate-600 flex items-center justify-center">
+                             <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" Size="Size.Small" Class="mr-1" /> Official Login
+                         </a>
+                    </div>
+                </EditForm>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Full screen background */
+    .login-container {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        display: flex;
+        font-family: 'Noto Sans', sans-serif;
+    }
+
+    .login-bg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: url('images/zonal-lab-banner.jpg'); /* Use valid generated image URL if needed */
+        background-size: cover;
+        background-position: center;
+        filter: brightness(0.4);
+        z-index: 0;
+    }
+
+    .login-content {
+        position: relative;
+        z-index: 10;
+        display: flex;
+        width: 100%;
+        height: 100%;
+    }
+
+    /* Left Stats Panel */
+    .stats-panel {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 4rem;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 1.5rem;
+        max-width: 600px;
+    }
+
+    .glass-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 16px;
+        padding: 1.5rem;
+        text-align: center;
+        transition: transform 0.3s ease;
+    }
+    
+    .glass-card:hover {
+        transform: translateY(-5px);
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Right Login Form */
+    .login-form-container {
+        width: 480px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(5px);
+        border-left: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .login-card {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.85); /* Acrylic effect */
+        backdrop-filter: blur(20px);
+        padding: 2.5rem;
+        border-radius: 12px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+        border: 1px solid rgba(255,255,255,0.4);
+        animation: slideInRight 0.5s ease-out;
+    }
+
+    @@keyframes slideInRight {
+        from { opacity: 0; transform: translateX(20px); }
+        to { opacity: 1; transform: translateX(0); }
+    }
+
+    /* Fluent Inputs */
+    .fluent-input {
+        border: 1px solid #d1d5db; /* slate-300 */
+        border-radius: 4px; /* Fluent UI usually has smaller radius */
+        padding: 10px 12px;
+        background: #fff;
+        transition: all 0.2s;
+        border-bottom: 2px solid transparent;
+    }
+    
+    .fluent-input:focus {
+        border-color: #0078D4;
+        border-bottom-color: #0078D4;
+        outline: none;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .fluent-button-primary {
+        background-color: #0078D4;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-weight: 600;
+        transition: background-color 0.2s;
+    }
+    
+    .fluent-button-primary:hover {
+        background-color: #106EBE;
+    }
+    
+    .fluent-button-primary:disabled {
+        background-color: #C7E0F4;
+        cursor: not-allowed;
+    }
+</style>
+
+@code {
+    private ApplicantLoginRequest loginModel = new();
+    private bool isLoading = false;
+
+    private async Task HandleLogin()
+    {
+        isLoading = true;
+        try
+        {
+            var result = await AuthService.LoginApplicantAsync(loginModel);
+            if (result.Success)
+            {
+                Navigation.NavigateTo("/dashboard");
+            }
+            else
+            {
+                Snackbar.Add(result.Message ?? "Login failed", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("An unexpected error occurred: " + ex.Message, Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

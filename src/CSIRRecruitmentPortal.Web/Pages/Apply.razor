@@ -1,0 +1,402 @@
+@page "/apply/{PostId:guid}"
+@using CSIRRecruitmentPortal.Shared.DTOs
+@using CSIRRecruitmentPortal.Shared.Enums
+@using CSIRRecruitmentPortal.Web.Services
+@attribute [Authorize]
+@inject IApplicationService AppService
+@inject IPostService PostService
+@inject NavigationManager Navigation
+@inject ISnackbar Snackbar
+
+<PageTitle>Apply - @(post?.Title ?? "Application")</PageTitle>
+
+<div class="container mx-auto px-4 py-8 max-w-5xl">
+    @if (isLoading)
+    {
+        <div class="flex flex-col items-center justify-center p-12">
+            <MudProgressCircular Color="Color.Primary" Size="Size.Large" Indeterminate="true" />
+            <p class="mt-4 text-slate-500">Loading Application Form...</p>
+        </div>
+    }
+    else if (post == null)
+    {
+        <MudAlert Severity="Severity.Error">Job Post not found.</MudAlert>
+    }
+    else
+    {
+        <div class="mb-6 flex justify-between items-end">
+            <div>
+                <div class="flex items-center gap-2 mb-1">
+                    <MudChip T="string" Size="Size.Small" Color="Color.Primary">@post.Code</MudChip>
+                    <span class="text-sm text-slate-500 font-bold uppercase">@post.Department</span>
+                </div>
+                <h1 class="text-2xl font-bold text-slate-800">@post.Title</h1>
+            </div>
+            <div class="text-right">
+                <p class="text-sm text-slate-500">Application Number</p>
+                <p class="font-mono font-bold text-lg text-blue-600">@(application.ApplicationNumber ?? "DRAFT")</p>
+            </div>
+        </div>
+
+        <MudTabs Elevation="2" Rounded="true" ApplyEffectsToContainer="true" PanelClass="p-6 bg-white" KeepPanelsAlive="true">
+            <!-- Personal Details -->
+            <MudTabPanel Text="Personal Details" Icon="@Icons.Material.Filled.Person">
+                <MudForm @ref="personalForm">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <MudTextField @bind-Value="application.PersonalDetails.FullName" Label="Full Name" Variant="Variant.Outlined" Required="true" />
+                        <MudTextField @bind-Value="application.PersonalDetails.FatherName" Label="Father's Name" Variant="Variant.Outlined" Required="true" />
+                        
+                        <MudDatePicker @bind-Date="application.PersonalDetails.DateOfBirth" Label="Date of Birth" Variant="Variant.Outlined" Required="true" />
+                        <MudSelect T="Gender" @bind-Value="application.PersonalDetails.Gender" Label="Gender" Variant="Variant.Outlined" Required="true" AnchorOrigin="Origin.BottomCenter">
+                            <MudSelectItem Value="Gender.Male">Male</MudSelectItem>
+                            <MudSelectItem Value="Gender.Female">Female</MudSelectItem>
+                            <MudSelectItem Value="Gender.Other">Other</MudSelectItem>
+                        </MudSelect>
+
+                        <MudSelect T="Category" @bind-Value="application.PersonalDetails.Category" Label="Category" Variant="Variant.Outlined" Required="true" AnchorOrigin="Origin.BottomCenter">
+                            <MudSelectItem Value="Category.General">General</MudSelectItem>
+                            <MudSelectItem Value="Category.OBC">OBC</MudSelectItem>
+                            <MudSelectItem Value="Category.SC">SC</MudSelectItem>
+                            <MudSelectItem Value="Category.ST">ST</MudSelectItem>
+                            <MudSelectItem Value="Category.EWS">EWS</MudSelectItem>
+                        </MudSelect>
+                        <MudSelect T="MaritalStatus" @bind-Value="application.PersonalDetails.MaritalStatus" Label="Marital Status" Variant="Variant.Outlined" Required="true" AnchorOrigin="Origin.BottomCenter">
+                            <MudSelectItem Value="MaritalStatus.Single">Single</MudSelectItem>
+                            <MudSelectItem Value="MaritalStatus.Married">Married</MudSelectItem>
+                        </MudSelect>
+                         
+                         <div class="md:col-span-2">
+                            <MudText Typo="Typo.subtitle2" Class="mb-2">Address for Communication</MudText>
+                            <MudTextField @bind-Value="application.PersonalDetails.Address" Label="Address" Variant="Variant.Outlined" Lines="3" Required="true" />
+                         </div>
+                         
+                         <MudTextField @bind-Value="application.PersonalDetails.City" Label="City" Variant="Variant.Outlined" Required="true" />
+                         <MudTextField @bind-Value="application.PersonalDetails.State" Label="State" Variant="Variant.Outlined" Required="true" />
+                         <MudTextField @bind-Value="application.PersonalDetails.Pincode" Label="Pincode" Variant="Variant.Outlined" Required="true" MaxLength="6" />
+                    </div>
+                </MudForm>
+            </MudTabPanel>
+
+            <!-- Education -->
+            <MudTabPanel Text="Education" Icon="@Icons.Material.Filled.School">
+                <MudTable Items="@application.Education" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Class="border border-slate-200 mb-4">
+                    <HeaderContent>
+                        <MudTh>Degree</MudTh>
+                        <MudTh>Subject</MudTh>
+                        <MudTh>Board/University</MudTh>
+                        <MudTh>Year</MudTh>
+                        <MudTh>Percentage</MudTh>
+                        <MudTh>Actions</MudTh>
+                    </HeaderContent>
+                    <RowTemplate Context="edu">
+                        <MudTd DataLabel="Degree">@edu.Degree</MudTd>
+                        <MudTd DataLabel="Subject">@edu.Subject</MudTd>
+                        <MudTd DataLabel="Board/University">@edu.BoardUniversity</MudTd>
+                        <MudTd DataLabel="Year">@edu.YearOfPassing</MudTd>
+                        <MudTd DataLabel="Percentage">@edu.Percentage %</MudTd>
+                        <MudTd DataLabel="Actions">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => RemoveEducation(edu))" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+
+                <div class="bg-slate-50 p-4 rounded border border-slate-200">
+                    <h4 class="text-sm font-bold text-slate-700 mb-4">Add Qualification</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <MudTextField @bind-Value="newEdu.Degree" Label="Degree (e.g. B.Tech)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudTextField @bind-Value="newEdu.Subject" Label="Subject/Specialization" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudTextField @bind-Value="newEdu.BoardUniversity" Label="Board/University" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudTextField @bind-Value="newEdu.YearOfPassing" Label="Year" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudTextField @bind-Value="newEdu.Percentage" Label="Percentage" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <div class="flex items-end">
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="AddEducation" StartIcon="@Icons.Material.Filled.Add">Add</MudButton>
+                        </div>
+                    </div>
+                </div>
+            </MudTabPanel>
+
+            <!-- Experience -->
+            <MudTabPanel Text="Experience" Icon="@Icons.Material.Filled.WorkHistory">
+                 <MudTable Items="@application.Experience" Hover="true" Breakpoint="Breakpoint.Sm" Elevation="0" Class="border border-slate-200 mb-4">
+                    <HeaderContent>
+                        <MudTh>Organization</MudTh>
+                        <MudTh>Designation</MudTh>
+                        <MudTh>From</MudTh>
+                        <MudTh>To</MudTh>
+                        <MudTh>Salary</MudTh>
+                        <MudTh>Actions</MudTh>
+                    </HeaderContent>
+                    <RowTemplate Context="exp">
+                        <MudTd DataLabel="Organization">@exp.Organization</MudTd>
+                        <MudTd DataLabel="Designation">@exp.Designation</MudTd>
+                        <MudTd DataLabel="From">@exp.FromDate?.ToString("MMM yyyy")</MudTd>
+                        <MudTd DataLabel="To">@exp.ToDate?.ToString("MMM yyyy")</MudTd>
+                        <MudTd DataLabel="Salary">@exp.Salary</MudTd>
+                        <MudTd DataLabel="Actions">
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(() => RemoveExperience(exp))" />
+                        </MudTd>
+                    </RowTemplate>
+                </MudTable>
+                
+                <div class="bg-slate-50 p-4 rounded border border-slate-200">
+                    <h4 class="text-sm font-bold text-slate-700 mb-4">Add Experience</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <MudTextField @bind-Value="newExp.Organization" Label="Organization" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudTextField @bind-Value="newExp.Designation" Label="Designation" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudDatePicker @bind-Date="newExp.FromDate" Label="From Date" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudDatePicker @bind-Date="newExp.ToDate" Label="To Date" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <MudTextField @bind-Value="newExp.Salary" Label="Salary" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                        <div class="flex items-end">
+                            <MudButton Variant="Variant.Filled" Color="Color.Secondary" OnClick="AddExperience" StartIcon="@Icons.Material.Filled.Add">Add</MudButton>
+                        </div>
+                    </div>
+                </div>
+            </MudTabPanel>
+
+            <!-- Documents -->
+            <MudTabPanel Text="Documents" Icon="@Icons.Material.Filled.UploadFile">
+                 <MudAlert Severity="Severity.Info" Class="mb-4">Please upload self-attested copies of all documents in PDF format only. Max size 2MB per file.</MudAlert>
+                 
+                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                     <div class="p-4 border rounded border-slate-200">
+                         <h4 class="font-bold mb-2">Detailed Biodata</h4>
+                         <InputFile id="docBiodata" hidden />
+                         <MudButton HtmlTag="label" for="docBiodata" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Upload">Upload Biodata</MudButton>
+                     </div>
+                     <div class="p-4 border rounded border-slate-200">
+                         <h4 class="font-bold mb-2">Educational Certificates</h4>
+                         <InputFile id="docEdu" hidden />
+                         <MudButton HtmlTag="label" for="docEdu" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Upload">Upload Certificates (Merged PDF)</MudButton>
+                     </div>
+                     <div class="p-4 border rounded border-slate-200">
+                         <h4 class="font-bold mb-2">Experience Certificates</h4>
+                         <InputFile id="docExp" hidden />
+                         <MudButton HtmlTag="label" for="docExp" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Upload">Upload Experience (Merged PDF)</MudButton>
+                     </div>
+                     <div class="p-4 border rounded border-slate-200">
+                         <h4 class="font-bold mb-2">Community Certificate</h4>
+                         <InputFile id="docComm" hidden />
+                         <MudButton HtmlTag="label" for="docComm" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.Upload">Upload Community Cert</MudButton>
+                     </div>
+                 </div>
+            </MudTabPanel>
+
+            <!-- Dynamic Custom Fields -->
+            @if (post.CustomFields != null && post.CustomFields.Any())
+            {
+                <MudTabPanel Text="Additional Questions" Icon="@Icons.Material.Filled.QuestionAnswer">
+                    <div class="space-y-6 max-w-2xl mx-auto">
+                        <MudText Typo="Typo.h6" Class="mb-4">Specific Requirements for this Post</MudText>
+                        
+                        @foreach (var field in post.CustomFields)
+                        {
+                            var val = GetCustomValue(field.Id);
+                            
+                            <div class="mb-4">
+                                @if (field.Type == FieldType.Text)
+                                {
+                                    <MudTextField T="string" Label="@field.FieldName" Value="@val.Value" ValueChanged="@(s => val.Value = s)" Required="@field.IsRequired" Variant="Variant.Outlined" />
+                                }
+                                else if (field.Type == FieldType.Number)
+                                {
+                                    <MudTextField T="string" Label="@field.FieldName" Value="@val.Value" ValueChanged="@(s => val.Value = s)" Required="@field.IsRequired" Variant="Variant.Outlined" InputType="InputType.Number" />
+                                }
+                                else if (field.Type == FieldType.Date)
+                                {
+                                    <MudDatePicker Label="@field.FieldName" Date="@(DateTime.TryParse(val.Value, out var d) ? d : null)" DateChanged="@(d => val.Value = d?.ToString("yyyy-MM-dd"))" Required="@field.IsRequired" Variant="Variant.Outlined" />
+                                }
+                                else if (field.Type == FieldType.File)
+                                {
+                                     <div class="border p-4 rounded bg-slate-50">
+                                        <MudText Typo="Typo.subtitle2">@field.FieldName @(field.IsRequired ? "*" : "")</MudText>
+                                        <InputFile id="@($"file-{field.Id}")" hidden />
+                                        <MudButton HtmlTag="label" for="@($"file-{field.Id}")" Variant="Variant.Outlined" StartIcon="@Icons.Material.Filled.FileUpload" Class="mt-2 text-transform-none">
+                                            @(string.IsNullOrEmpty(val.Value) ? "Choose File" : "File Selected")
+                                        </MudButton>
+                                        @if (!string.IsNullOrEmpty(val.Value)) { <span class="ml-2 text-sm text-green-600">Uploaded</span> }
+                                     </div>
+                                }
+                                else if (field.Type == FieldType.Dropdown)
+                                {
+                                    <MudSelect T="string" Label="@field.FieldName" Value="@val.Value" ValueChanged="@(s => val.Value = s)" Required="@field.IsRequired" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter">
+                                        @if (field.Options != null)
+                                        {
+                                            @foreach (var opt in field.Options)
+                                            {
+                                                <MudSelectItem Value="@opt">@opt</MudSelectItem>
+                                            }
+                                        }
+                                    </MudSelect>
+                                }
+                            </div>
+                        }
+                    </div>
+                </MudTabPanel>
+            }
+        </MudTabs>
+
+        <!-- Actions -->
+        <div class="mt-8 flex justify-between items-center bg-slate-100 p-4 rounded-lg sticky bottom-0 z-10 border-t border-slate-300">
+            <MudButton Variant="Variant.Outlined" Color="Color.Default" Href="/dashboard">Cancel</MudButton>
+            <div class="flex gap-4">
+                <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="SaveDraft" Disabled="@isSaving">
+                     @if (isSaving) { <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/> <span class="ml-2">Saving...</span> }
+                     else { <span>Save Draft</span> }
+                </MudButton>
+                <MudButton Variant="Variant.Filled" Color="Color.Success" OnClick="SubmitApplication" Disabled="@isSaving" StartIcon="@Icons.Material.Filled.Send">Submit Application</MudButton>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public Guid PostId { get; set; }
+
+    private JobPostDto? post;
+    private ApplicationFormDto application = new();
+    private bool isLoading = true;
+    private bool isSaving = false;
+    private MudForm personalForm;
+    
+    // Temp items for adding
+    private EducationEntryDto newEdu = new();
+    private ExperienceEntryDto newExp = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            post = await PostService.GetPostByIdAsync(PostId);
+            if (post != null)
+            {
+                // Check if application exists
+                var myApps = await AppService.GetMyApplicationsAsync();
+                var existingApp = myApps.FirstOrDefault(a => a.PostId == PostId);
+
+                if (existingApp != null)
+                {
+                    var fullApp = await AppService.GetApplicationByIdAsync(existingApp.Id);
+                    if (fullApp != null) application = fullApp;
+                }
+                else
+                {
+                    // Init new application
+                    application.PostId = PostId;
+                    application.PersonalDetails = new PersonalDetailsDto();
+                    // Pre-fill some details from Auth state if we had them or create blank
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add("Error initializing form", Severity.Error);
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void AddEducation()
+    {
+        if (string.IsNullOrWhiteSpace(newEdu.Degree)) return;
+        application.Education.Add(newEdu); // Clone if needed
+        newEdu = new(); // Reset
+    }
+    
+    private void RemoveEducation(EducationEntryDto item) => application.Education.Remove(item);
+
+    private void AddExperience()
+    {
+        if (string.IsNullOrWhiteSpace(newExp.Organization)) return;
+        application.Experience.Add(newExp);
+        newExp = new();
+    }
+
+    private void RemoveExperience(ExperienceEntryDto item) => application.Experience.Remove(item);
+
+    private async Task SaveDraft()
+    {
+        isSaving = true;
+        try
+        {
+            if (application.Id == Guid.Empty)
+            {
+                application = await AppService.CreateApplicationAsync(application);
+            }
+            else
+            {
+                var result = await AppService.UpdateApplicationAsync(application.Id, application);
+                if (result != null) application = result;
+            }
+            Snackbar.Add("Draft saved successfully", Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add($"Error saving draft: {ex.Message}", Severity.Error);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task SubmitApplication()
+    {
+        await personalForm.Validate();
+        if (!personalForm.IsValid)
+        {
+            Snackbar.Add("Please fill all required personal details", Severity.Warning);
+            return;
+        }
+
+        // Auto save first
+        await SaveDraft();
+
+        bool confirmed = await DialogService.ShowMessageBox(
+            "Confirm Submission", 
+            "Are you sure you want to submit? You cannot edit the application after submission.", 
+            yesText: "Submit", cancelText: "Cancel") ?? false;
+
+        if (confirmed)
+        {
+            isSaving = true;
+            try
+            {
+                var success = await AppService.SubmitApplicationAsync(application.Id);
+                if (success)
+                {
+                    Snackbar.Add("Application submitted successfully!", Severity.Success);
+                    Navigation.NavigateTo("/dashboard");
+                }
+                else
+                {
+                    Snackbar.Add("Submission failed", Severity.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                 Snackbar.Add($"Error submitting: {ex.Message}", Severity.Error);
+            }
+            finally
+            {
+                isSaving = false;
+            }
+        }
+    }
+    
+    private CustomValueDto GetCustomValue(Guid fieldId)
+    {
+        if (application.CustomValues == null) application.CustomValues = new List<CustomValueDto>();
+        
+        var existing = application.CustomValues.FirstOrDefault(v => v.CustomFieldId == fieldId);
+        if (existing == null)
+        {
+            existing = new CustomValueDto { CustomFieldId = fieldId };
+            application.CustomValues.Add(existing);
+        }
+        return existing;
+    }
+
+    [Inject] IDialogService DialogService { get; set; }
+}
